@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SubGuard AI — OWS Web3 Subscription Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#05050f;--bg2:#0d0d1f;--bg3:#13132a;--card:#0f0f23;--border:#1e1e3f;--text:#e2e8f0;--text2:#94a3b8;--accent:#7c3aed;--accent2:#6d28d9;--accent3:#a78bfa;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--radius:12px;--shadow:0 4px 24px rgba(124,58,237,.15)}
+[data-theme="light"]{--bg:#f1f5f9;--bg2:#e2e8f0;--bg3:#cbd5e1;--card:#ffffff;--border:#cbd5e1;--text:#0f172a;--text2:#475569;--shadow:0 4px 24px rgba(0,0,0,.1)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+a{color:var(--accent3);text-decoration:none}
+button{cursor:pointer;font-family:'Inter',sans-serif}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+/* HEADER */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 0;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,#7c3aed,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo svg{width:32px;height:32px;flex-shrink:0}
+.header-actions{display:flex;align-items:center;gap:10px}
+.theme-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:.85rem;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:6px}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent3)}
+/* OWS BAR */
+.ows-bar{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin:24px 0 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ows-info{display:flex;align-items:center;gap:12px}
+.ows-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.ows-label{font-size:.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.ows-addr{font-size:.9rem;font-weight:600;font-family:monospace}
+.ows-balance{text-align:right}
+.ows-balance-val{font-size:1.1rem;font-weight:700;color:var(--accent3)}
+.ows-balance-label{font-size:.75rem;color:var(--text2)}
+/* BUDGET BAR */
+.budget-section{margin:16px 0 0}
+.budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.budget-title{font-size:.85rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.budget-vals{font-size:.85rem;font-weight:600}
+.budget-track{background:var(--bg3);border-radius:99px;height:10px;overflow:hidden;border:1px solid var(--border)}
+.budget-fill{height:100%;border-radius:99px;transition:width .6s ease,background .3s}
+.budget-fill.ok{background:linear-gradient(90deg,var(--accent),var(--accent3))}
+.budget-fill.warn{background:linear-gradient(90deg,var(--yellow),#fbbf24)}
+.budget-fill.over{background:linear-gradient(90deg,var(--red),#f87171)}
+.budget-pct{font-size:.75rem;color:var(--text2);margin-top:4px;text-align:right}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:24px 0}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-icon{font-size:1.5rem;margin-bottom:8px}
+.stat-val{font-size:1.6rem;font-weight:800;line-height:1}
+.stat-label{font-size:.78rem;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.stat-sub{font-size:.75rem;color:var(--green);margin-top:2px}
+/* MAIN LAYOUT */
+.main-grid{display:grid;grid-template-columns:1fr 340px;gap:24px;margin:24px 0}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr}}
+/* PANEL */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:1rem;font-weight:700}
+.panel-body{padding:20px}
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--bg3);border-radius:8px;padding:4px}
+.tab{padding:6px 14px;border-radius:6px;border:none;background:transparent;color:var(--text2);font-size:.82rem;font-weight:500;transition:all .2s}
+.tab.active{background:var(--accent);color:#fff}
+/* CATEGORY FILTERS */
+.cat-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.cat-btn{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.78rem;font-weight:500;transition:all .2s}
+.cat-btn:hover,.cat-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* SUBSCRIPTION LIST */
+.sub-list{display:flex;flex-direction:column;gap:10px}
+.sub-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:all .2s}
+.sub-item:hover{border-color:var(--accent);transform:translateX(2px)}
+.sub-left{display:flex;align-items:center;gap:12px}
+.sub-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.sub-name{font-weight:600;font-size:.9rem}
+.sub-cat{font-size:.72rem;color:var(--text2);margin-top:2px}
+.sub-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sub-amount{font-weight:700;font-size:.95rem;color:var(--accent3)}
+.badge{padding:3px 8px;border-radius:99px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+.badge-low{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-med{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-high{background:rgba(239,68,68,.15);color:var(--red)}
+/* BUTTONS */
+.btn{padding:10px 18px;border-radius:8px;border:none;font-size:.85rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent3)}
+.btn-green{background:rgba(16,185,129,.15);border:1px solid var(--green);color:var(--green)}
+.btn-green:hover{background:var(--green);color:#fff}
+.btn-red{background:rgba(239,68,68,.15);border:1px solid var(--red);color:var(--red)}
+.btn-red:hover{background:var(--red);color:#fff}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+/* POLICY EDITOR */
+.policy-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.policy-label{font-size:.8rem;color:var(--text2);font-weight:500}
+.policy-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:.85rem;font-family:'Inter',sans-serif;transition:border .2s}
+.policy-input:focus{outline:none;border-color:var(--accent)}
+select.policy-input option{background:var(--bg2)}
+/* AI SECTION */
+.ai-output{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;min-height:80px;font-size:.82rem;line-height:1.7;color:var(--text2);margin-top:12px;white-space:pre-wrap}
+.thinking{display:flex;align-items:center;gap:8px;color:var(--accent3)}
+.thinking-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent3);animation:bounce .8s infinite}
+.thinking-dots span:nth-child(2){animation-delay:.15s}
+.thinking-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* APPROVALS */
+.approval-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.approval-name{font-weight:600;font-size:.9rem;margin-bottom:4px}
+.approval-detail{font-size:.78rem;color:var(--text2);margin-bottom:10px}
+.approval-actions{display:flex;gap:8px}
+/* HISTORY */
+.history-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:8px}
+.history-item:last-child{border-bottom:none}
+.history-name{font-size:.85rem;font-weight:500}
+.history-date{font-size:.75rem;color:var(--text2)}
+.history-amount{font-size:.85rem;font-weight:600;color:var(--accent3)}
+.history-status{font-size:.72rem;padding:2px 8px;border-radius:99px}
+.status-paid{background:rgba(16,185,129,.15);color:var(--green)}
+.status-cancelled{background:rgba(239,68,68,.15);color:var(--red)}
+/* SAVED CARD */
+.saved-card{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.3);border-radius:var(--radius);padding:20px;text-align:center;margin-top:16px}
+.saved-val{font-size:2rem;font-weight:800;color:var(--green)}
+.saved-label{font-size:.8rem;color:var(--text2);margin-top:4px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:scale(.95);transition:transform .25s}
+.modal-overlay.open .modal{transform:scale(1)}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:1.1rem;font-weight:700}
+.modal-close{background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:6px;font-size:1rem;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{color:var(--text);border-color:var(--accent)}
+.modal-body{padding:20px 24px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:.8rem;color:var(--text2);font-weight:500;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:.88rem;font-family:'Inter',sans-serif;transition:border .2s}
+.form-input:focus{outline:none;border-color:var(--accent)}
+.form-input option{background:var(--bg2)}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+/* DETAIL MODAL */
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:.8rem;color:var(--text2)}
+.detail-val{font-size:.85rem;font-weight:600;text-align:right}
+.risk-indicator{display:flex;align-items:center;gap:6px}
+.risk-dot{width:8px;height:8px;border-radius:50%}
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-icon{font-size:2.5rem;margin-bottom:8px}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:.85rem;font-weight:500;z-index:300;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+/* RESPONSIVE */
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}.ows-bar{flex-direction:column;align-items:flex-start}.header-inner{gap:10px}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+<div class="container">
+<div class="header-inner">
+<div class="logo">
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M16 2L4 8v8c0 7.18 5.16 13.9 12 15.5C22.84 29.9 28 23.18 28 16V8L16 2z" fill="url(#sg)" opacity=".9"/>
+<path d="M11 16l3.5 3.5L21 12" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<defs><linearGradient id="sg" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+</svg>
+SubGuard AI
+</div>
+<div class="header-actions">
+<button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
+<button class="btn btn-outline btn-sm" onclick="resetDemo()">↺ Reset Demo</button>
+</div>
+</div>
+</div>
+</header>
+
+<div class="container" style="padding-bottom:60px">
+
+<!-- OWS WALLET BAR -->
+<div class="ows-bar">
+<div class="ows-info">
+<div class="ows-dot"></div>
+<div>
+<div class="ows-label">OWS Wallet Connected</div>
+<div class="ows-addr" id="owsAddr">0x742d...F4e2</div>
+</div>
+</div>
+<div style="flex:1;padding:0 20px">
+<div class="budget-section">
+<div class="budget-header">
+<span class="budget-title">Monthly Budget</span>
+<span class="budget-vals"><span id="budgetUsed">0</span> / <span id="budgetTotal">0</span> USDC</span>
+</div>
+<div class="budget-track"><div class="budget-fill ok" id="budgetFill" style="width:0%"></div></div>
+<div class="budget-pct" id="budgetPct">0% used</div>
+</div>
+</div>
+<div class="ows-balance">
+<div class="ows-balance-val" id="owsBalance">— USDC</div>
+<div class="ows-balance-label">Available Balance</div>
+</div>
+</div>
+
+<!-- STATS -->
+<div class="stats-grid" id="statsGrid">
+<div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="statActive">—</div><div class="stat-label">Active Subs</div></div>
+<div class="stat-card"><div class="stat-icon">💸</div><div class="stat-val" id="statMonthly">—</div><div class="stat-label">Monthly Cost</div><div class="stat-sub" id="statMonthlySub"></div></div>
+<div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-val" id="statRisk">—</div><div class="stat-label">High Risk</div></div>
+<div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-val" id="statAI">—</div><div class="stat-label">AI Score</div></div>
+<div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="statPending">—</div><div class="stat-label">Pending</div></div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+<!-- LEFT: SUBSCRIPTIONS -->
+<div>
+<div class="panel">
+<div class="panel-header">
+<span class="panel-title">Subscriptions</span>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-outline btn-sm" onclick="openAddModal()">+ Add</button>
+<button class="btn btn-primary btn-sm" onclick="runAnalysis()" id="analyzeBtn">🤖 Run AI Analysis</button>
+</div>
+</div>
+<div class="panel-body">
+<!-- CATEGORY FILTERS -->
+<div class="cat-filters" id="catFilters">
+<button class="cat-btn active" data-cat="All" onclick="filterCat(this,'All')">All</button>
+<button class="cat-btn" data-cat="Entertainment" onclick="filterCat(this,'Entertainment')">Entertainment</button>
+<button class="cat-btn" data-cat="Music" onclick="filterCat(this,'Music')">Music</button>
+<button class="cat-btn" data-cat="Storage" onclick="filterCat(this,'Storage')">Storage</button>
+<button class="cat-btn" data-cat="Gaming" onclick="filterCat(this,'Gaming')">Gaming</button>
+<button class="cat-btn" data-cat="News" onclick="filterCat(this,'News')">News</button>
+<button class="cat-btn" data-cat="Other" onclick="filterCat(this,'Other')">Other</button>
+</div>
+<!-- TABS -->
+<div class="tabs" style="margin-bottom:16px">
+<button class="tab active" onclick="switchTab(this,'subs')">Subscriptions</button>
+<button class="tab" onclick="switchTab(this,'approvals')">Pending Approvals <span id="pendingBadge"></span></button>
+<button class="tab" onclick="switchTab(this,'history')">History</button>
+</div>
+<!-- SUBS TAB -->
+<div id="tab-subs">
+<div class="sub-list" id="subList"><div class="empty"><div class="empty-icon">📭</div>Loading...</div></div>
+</div>
+<!-- APPROVALS TAB -->
+<div id="tab-approvals" style="display:none">
+<div id="approvalList"><div class="empty"><div class="empty-icon">✅</div>No pending approvals</div></div>
+</div>
+<!-- HISTORY TAB -->
+<div id="tab-history" style="display:none">
+<div id="historyList"><div class="empty"><div class="empty-icon">📜</div>Loading history...</div></div>
+</div>
+<!-- AI OUTPUT -->
+<div id="aiSection" style="display:none">
+<div class="ai-output" id="aiOutput"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- RIGHT: SIDEBAR -->
+<div style="display:flex;flex-direction:column;gap:16px">
+
+<!-- POLICY EDITOR -->
+<div class="panel">
+<div class="panel-header"><span class="panel-title">⚙️ Policy Editor</span></div>
+<div class="panel-body">
+<div class="policy-row">
+<label class="policy-label">Monthly Budget (USDC)</label>
+<input class="policy-input" type="number" id="policyBudget" placeholder="100" min="0"/>
+</div>
+<div class="policy-row">
+<label class="policy-label">Risk Tolerance</label>
+<select class="policy-input" id="policyRisk">
+<option value="low">Low — Cancel high-risk automatically</option>
+<option value="medium" selected>Medium — Flag for review</option>
+<option value="high">High — Allow all</option>
+</select>
+</div>
+<div class="policy-row">
+<label class="policy-label">Auto-cancel if unused (days)</label>
+<input class="policy-input" type="number" id="policyUnused" placeholder="30" min="1"/>
+</div>
+<div class="policy-row">
+<label class="policy-label">Require approval above (USDC)</label>
+<input class="policy-input" type="number" id="policyApproval" placeholder="20" min="0"/>
+</div>
+<button class="btn btn-primary" style="width:100%" onclick="savePolicy()">Save Policy</button>
+</div>
+</div>
+
+<!-- TOTAL SAVED -->
+<div class="panel">
+<div class="panel-header"><span class="panel-title">💰 Savings Tracker</span></div>
+<div class="panel-body">
+<div class="saved-card">
+<div class="saved-val" id="savedVal">$0</div>
+<div class="saved-label">Total Saved by AI Recommendations</div>
+</div>
+<div style="margin-top:14px;font-size:.8rem;color:var(--text2);line-height:1.6" id="savingsBreakdown">
+AI has not run yet. Click "Run AI Analysis" to get recommendations.
+</div>
+</div>
+</div>
+
+</div><!-- end sidebar -->
+</div><!-- end main-grid -->
+</div><!-- end container -->
+
+<!-- ADD SUBSCRIPTION MODAL -->
+<div class="modal-overlay" id="addModal">
+<div class="modal">
+<div class="modal-header">
+<span class="modal-title">➕ Add Subscription</span>
+<button class="modal-close" onclick="closeAddModal()">✕</button>
+</div>
+<div class="modal-body">
+<div class="form-row">
+<label class="form-label">Service Name *</label>
+<input class="form-input" id="addName" placeholder="e.g. Netflix, Spotify..."/>
+</div>
+<div class="form-row">
+<label class="form-label">Category *</label>
+<select class="form-input" id="addCategory">
+<option value="Entertainment">Entertainment</option>
+<option value="Music">Music</option>
+<option value="Storage">Storage</option>
+<option value="Gaming">Gaming</option>
+<option value="News">News</option>
+<option value="Other">Other</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label">Monthly Cost (USDC) *</label>
+<input class="form-input" type="number" id="addAmount" placeholder="9.99" min="0" step="0.01"/>
+</div>
+<div class="form-row">
+<label class="form-label">Usage Score (0–100)</label>
+<input class="form-input" type="number" id="addUsage" placeholder="75" min="0" max="100"/>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+<button class="btn btn-primary" onclick="submitAddSub()">Add Subscription</button>
+</div>
+</div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+<div class="modal">
+<div class="modal-header">
+<span class="modal-title" id="detailTitle">Subscription Details</span>
+<button class="modal-close" onclick="closeDetailModal()">✕</button>
+</div>
+<div class="modal-body" id="detailBody"></div>
+<div class="modal-footer">
+<button class="btn btn-outline" onclick="closeDetailModal()">Close</button>
+</div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allSubs = [];
+let currentCat = 'All';
+let policy = { budget: 100, risk: 'medium', unusedDays: 30, approvalThreshold: 20 };
+let isDark = true;
+
+// ── THEME ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function switchTab(btn, tab) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['subs','approvals','history'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'history') loadHistory();
+  if (tab === 'approvals') loadApprovals();
+}
+
+// ── CATEGORY FILTER ────────────────────────────────────────────────────────
+function filterCat(btn, cat) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSubs();
+}
+
+// ── BUDGET BAR ─────────────────────────────────────────────────────────────
+function updateBudgetBar(used, total) {
+  const pct = total > 0 ? Math.min((used / total) * 100, 150) : 0;
+  const fill = document.getElementById('budgetFill');
+  const pctEl = document.getElementById('budgetPct');
+  document.getElementById('budgetUsed').textContent = used.toFixed(2);
+  document.getElementById('budgetTotal').textContent = total.toFixed(2);
+  fill.style.width = Math.min(pct, 100) + '%';
+  pctEl.textContent = pct.toFixed(1) + '% used';
+  fill.className = 'budget-fill';
+  if (pct >= 100) fill.classList.add('over');
+  else if (pct >= 75) fill.classList.add('warn');
+  else fill.classList.add('ok');
+}
+
+// ── FETCH HELPERS ──────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  try {
+    const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// ── LOAD STATS ─────────────────────────────────────────────────────────────
+async function loadStats() {
+  const data = await apiFetch('/api/stats');
+  if (!data) return;
+  document.getElementById('statActive').textContent = data.activeSubscriptions ?? '—';
+  document.getElementById('statMonthly').textContent = data.monthlySpend ? '$' + data.monthlySpend.toFixed(2) : '—';
+  document.getElementById('statMonthlySub').textContent = data.monthlyChange ?? '';
+  document.getElementById('statRisk').textContent = data.highRiskCount ?? '—';
+  document.getElementById('statAI').textContent = data.aiScore ? data.aiScore + '/100' : '—';
+  document.getElementById('statPending').textContent = data.pendingApprovals ?? '—';
+  document.getElementById('owsBalance').textContent = data.walletBalance ? data.walletBalance + ' USDC' : '— USDC';
+  document.getElementById('owsAddr').textContent = data.walletAddress ?? '0x742d...F4e2';
+  if (data.savedAmount !== undefined) {
+    document.getElementById('savedVal').textContent = '$' + parseFloat(data.savedAmount).toFixed(2);
+  }
+  const used = parseFloat(data.monthlySpend) || 0;
+  const budget = parseFloat(data.budget || policy.budget) || 100;
+  updateBudgetBar(used, budget);
+  if (data.pendingApprovals > 0) {
+    document.getElementById('pendingBadge').textContent = ' (' + data.pendingApprovals + ')';
+  }
+}
+
+// ── LOAD SUBSCRIPTIONS ─────────────────────────────────────────────────────
+async function loadSubs() {
+  const data = await apiFetch('/api/subscriptions');
+  if (data && Array.isArray(data)) {
+    allSubs = data;
+  } else {
+    allSubs = getDemoSubs();
+  }
+  renderSubs();
+}
+
+function getDemoSubs() {
+  return [
+    { id: 1, name: 'Netflix', category: 'Entertainment', monthlyUSDC: 15.99, usageScore: 82, riskLevel: 'low', address: '0xNetf...1234', lastUsed: '2 hours ago', recommendation: 'Keep — high usage' },
+    { id: 2, name: 'Spotify', category: 'Music', monthlyUSDC: 9.99, usageScore: 91, riskLevel: 'low', address: '0xSpot...5678', lastUsed: '1 day ago', recommendation: 'Keep — excellent value' },
+    { id: 3, name: 'Adobe CC', category: 'Storage', monthlyUSDC: 54.99, usageScore: 23, riskLevel: 'high', address: '0xAdob...9abc', lastUsed: '18 days ago', recommendation: 'Cancel — low usage, high cost' },
+    { id: 4, name: 'Xbox Game Pass', category: 'Gaming', monthlyUSDC: 14.99, usageScore: 55, riskLevel: 'medium', address: '0xXbox...def0', lastUsed: '5 days ago', recommendation: 'Review — moderate usage' },
+    { id: 5, name: 'NY Times', category: 'News', monthlyUSDC: 4.99, usageScore: 38, riskLevel: 'medium', address: '0xNYT...1111', lastUsed: '12 days ago', recommendation: 'Consider cancelling' },
+  ];
+}
+
+function renderSubs() {
+  const list = document.getElementById('subList');
+  let subs = currentCat === 'All' ? allSubs : allSubs.filter(s => s.category === currentCat);
+  if (!subs.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>No subscriptions in this category</div>';
+    return;
+  }
+  const icons = { Entertainment: '🎬', Music: '🎵', Storage: '☁️', Gaming: '🎮', News: '📰', Other: '📦' };
+  list.innerHTML = subs.map(s => `
+    <div class="sub-item" onclick="openDetail(${s.id})">
+      <div class="sub-left">
+        <div class="sub-icon">${icons[s.category] || '📦'}</div>
+        <div>
+          <div class="sub-name">${s.name}</div>
+          <div class="sub-cat">${s.category} · Usage: ${s.usageScore ?? '—'}/100</div>
+        </div>
+      </div>
+      <div class="sub-right">
+        <span class="sub-amount">$${parseFloat(s.monthlyUSDC).toFixed(2)}</span>
+        <span class="badge badge-${(s.riskLevel||'low').toLowerCase()}">${s.riskLevel || 'low'}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── DETAIL MODAL ───────────────────────────────────────────────────────────
+function openDetail(id) {
+  const s = allSubs.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('detailTitle').textContent = s.name;
+  const riskColor = { low: 'var(--green)', medium: 'var(--yellow)', high: 'var(--red)' };
+  const rc = riskColor[(s.riskLevel||'low').toLowerCase()] || 'var(--green)';
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-row"><span class="detail-key">Category</span><span class="detail-val">${s.category}</span></div>
+    <div class="detail-row"><span class="detail-key">Monthly Cost</span><span class="detail-val" style="color:var(--accent3)">$${parseFloat(s.monthlyUSDC).toFixed(2)} USDC</span></div>
+    <div class="detail-row"><span class="detail-key">Contract Address</span><span class="detail-val" style="font-family:monospace;font-size:.78rem">${s.address || '0x—'}</span></div>
+    <div class="detail-row"><span class="detail-key">Last Used</span><span class="detail-val">${s.lastUsed || '—'}</span></div>
+    <div class="detail-row"><span class="detail-key">Usage Score</span><span class="detail-val">${s.usageScore ?? '—'} / 100</span></div>
+    <div class="detail-row"><span class="detail-key">Risk Level</span><span class="detail-val"><span class="risk-indicator"><span class="risk-dot" style="background:${rc}"></span>${s.riskLevel || 'low'}</span></span></div>
+    <div class="detail-row"><span class="detail-key">AI Recommendation</span><span class="detail-val" style="color:var(--text2);max-width:220px;text-align:right">${s.recommendation || '—'}</span></div>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('open'); }
+
+// ── ADD SUBSCRIPTION MODAL ─────────────────────────────────────────────────
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+  ['addName','addAmount','addUsage'].forEach(id => document.getElementById(id).value = '');
+}
+async function submitAddSub() {
+  const name = document.getElementById('addName').value.trim();
+  const category = document.getElementById('addCategory').value;
+  const monthlyUSDC = parseFloat(document.getElementById('addAmount').value);
+  const usageScore = parseInt(document.getElementById('addUsage').value) || 50;
+  if (!name || isNaN(monthlyUSDC)) { showToast('Please fill required fields', 'error'); return; }
+  const body = { name, category, monthlyUSDC, usageScore };
+  const res = await apiFetch('/api/subscriptions', { method: 'POST', body: JSON.stringify(body) });
+  if (res) {
+    showToast('Subscription added!');
+    closeAddModal();
+    loadSubs();
+    loadStats();
+  } else {
+    // Demo mode: add locally
+    const newSub = { id: Date.now(), name, category, monthlyUSDC, usageScore, riskLevel: usageScore < 40 ? 'high' : usageScore < 70 ? 'medium' : 'low', address: '0x' + Math.random().toString(16).slice(2,10) + '...', lastUsed: 'Just now', recommendation: 'Newly added' };
+    allSubs.push(newSub);
+    renderSubs();
+    closeAddModal();
+    showToast('Subscription added (demo mode)');
+  }
+}
+
+// ── APPROVALS ──────────────────────────────────────────────────────────────
+async function loadApprovals() {
+  const data = await apiFetch('/api/subscriptions');
+  const pending = (data || getDemoSubs()).filter(s => s.status === 'pending' || s.pendingApproval);
+  const list = document.getElementById('approvalList');
+  if (!pending.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>No pending approvals</div>';
+    return;
+  }
+  list.innerHTML = pending.map(s => `
+    <div class="approval-item">
+      <div class="approval-name">${s.name}</div>
+      <div class="approval-detail">$${parseFloat(s.monthlyUSDC).toFixed(2)}/mo · ${s.category}</div>
+      <div class="approval-actions">
+        <button class="btn btn-green btn-sm" onclick="approveItem(${s.id})">✓ Approve</button>
+        <button class="btn btn-red btn-sm" onclick="rejectItem(${s.id})">✕ Reject</button>
+      </div>
+    </div>`).join('');
+}
+async function approveItem(id) {
+  await apiFetch('/api/approve/' + id, { method: 'POST' });
+  showToast('Approved!');
+  loadApprovals();
+  loadStats();
+}
+async function rejectItem(id) {
+  await apiFetch('/api/reject/' + id, { method: 'POST' });
+  showToast('Rejected', 'error');
+  loadApprovals();
+  loadStats();
+}
+
+// ── HISTORY ────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const data = await apiFetch('/api/history');
+  const list = document.getElementById('historyList');
+  const items = data || getDemoHistory();
+  if (!items.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">📜</div>No history yet</div>'; return; }
+  list.innerHTML = '<div>' + items.map(h => `
+    <div class="history-item">
+      <div><div class="history-name">${h.name || h.service}</div><div class="history-date">${h.date || h.timestamp}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="history-amount">$${parseFloat(h.amount || h.monthlyUSDC || 0).toFixed(2)}</span>
+        <span class="history-status ${h.status === 'cancelled' ? 'status-cancelled' : 'status-paid'}">${h.status || 'paid'}</span>
+      </div>
+    </div>`).join('') + '</div>';
+}
+function getDemoHistory() {
+  return [
+    { name: 'Netflix', date: 'Dec 1, 2024', amount: 15.99, status: 'paid' },
+    { name: 'Spotify', date: 'Dec 1, 2024', amount: 9.99, status: 'paid' },
+    { name: 'Adobe CC', date: 'Nov 15, 2024', amount: 54.99, status: 'cancelled' },
+    { name: 'Hulu', date: 'Nov 1, 2024', amount: 12.99, status: 'cancelled' },
+    { name: 'Xbox Game Pass', date: 'Dec 1, 2024', amount: 14.99, status: 'paid' },
+  ];
+}
+
+// ── AI ANALYSIS ────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const sec = document.getElementById('aiSection');
+  const out = document.getElementById('aiOutput');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing...';
+  sec.style.display = '';
+  out.innerHTML = '<div class="thinking">🤖 AI Agent thinking<div class="thinking-dots"><span></span><span></span><span></span></div></div>';
+  const res = await apiFetch('/api/analyze', { method: 'POST', body: JSON.stringify({ subscriptions: allSubs }) });
+  btn.disabled = false;
+  btn.textContent = '🤖 Run AI Analysis';
+  if (res && res.analysis) {
+    out.textContent = res.analysis;
+    if (res.savedAmount) {
+      document.getElementById('savedVal').textContent = '$' + parseFloat(res.savedAmount).toFixed(2);
+      document.getElementById('savingsBreakdown').textContent = res.breakdown || 'Based on AI recommendations.';
+    }
+  } else {
+    out.textContent = `🤖 SubGuard AI Analysis Complete\n\n` +
+      `📊 Portfolio Overview:\n` +
+      `• ${allSubs.length} active subscriptions analyzed\n` +
+      `• Total monthly spend: $${allSubs.reduce((a,s)=>a+parseFloat(s.monthlyUSDC||0),0).toFixed(2)} USDC\n\n` +
+      `⚠️ High-Risk Findings:\n` +
+      allSubs.filter(s=>s.riskLevel==='high').map(s=>`• ${s.name}: Low usage (${s.usageScore}/100) — recommend cancellation`).join('\n') + '\n\n' +
+      `✅ Recommendations:\n` +
+      `• Cancel ${allSubs.filter(s=>s.riskLevel==='high').length} high-risk subscription(s)\n` +
+      `• Potential savings: $${allSubs.filter(s=>s.riskLevel==='high').reduce((a,s)=>a+parseFloat(s.monthlyUSDC||0),0).toFixed(2)}/month\n` +
+      `• Review ${allSubs.filter(s=>s.riskLevel==='medium').length} medium-risk subscription(s)`;
+    const saved = allSubs.filter(s=>s.riskLevel==='high').reduce((a,s)=>a+parseFloat(s.monthlyUSDC||0),0);
+    document.getElementById('savedVal').textContent = '$' + saved.toFixed(2);
+    document.getElementById('savingsBreakdown').textContent = 'Estimated savings from cancelling high-risk subscriptions.';
+  }
+}
+
+// ── POLICY ─────────────────────────────────────────────────────────────────
+async function savePolicy() {
+  policy.budget = parseFloat(document.getElementById('policyBudget').value) || 100;
+  policy.risk = document.getElementById('policyRisk').value;
+  policy.unusedDays = parseInt(document.getElementById('policyUnused').value) || 30;
+  policy.approvalThreshold = parseFloat(document.getElementById('policyApproval').value) || 20;
+  await apiFetch('/api/policy', { method: 'POST', body: JSON.stringify(policy) });
+  showToast('Policy saved!');
+  const used = allSubs.reduce((a,s)=>a+parseFloat(s.monthlyUSDC||0),0);
+  updateBudgetBar(used, policy.budget);
+}
+
+// ── RESET ──────────────────────────────────────────────────────────────────
+async function resetDemo() {
+  if (!confirm('Reset demo data?')) return;
+  await apiFetch('/api/reset', { method: 'POST' });
+  document.getElementById('aiSection').style.display = 'none';
+  document.getElementById('savedVal').textContent = '$0';
+  document.getElementById('savingsBreakdown').textContent = 'AI has not run yet.';
+  loadSubs();
+  loadStats();
+  showToast('Demo reset!');
+}
+
+// ── CLOSE MODALS ON OVERLAY CLICK ──────────────────────────────────────────
+document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeAddModal(); });
+document.getElementById('detailModal').addEventListener('click', function(e) { if(e.target===this) closeDetailModal(); });
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+(async function init() {
+  await Promise.all([loadStats(), loadSubs()]);
+  // Pre-fill policy inputs
+  document.getElementById('policyBudget').value = policy.budget;
+  document.getElementById('policyUnused').value = policy.unusedDays;
+  document.getElementById('policyApproval').value = policy.approvalThreshold;
+})();
+</script>
+</body>
+</html>
