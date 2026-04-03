@@ -188,23 +188,25 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px}
 <script>
 const ICONS={wallet:'💳',shield:'🛡️',alert:'⚠️',money:'💰',info:'ℹ️'};
 async function load(){
-  const[sr,str]=await Promise.all([fetch('/api/subscriptions'),fetch('/api/stats')]);
-  const d=await sr.json(),st=await str.json();
-  document.getElementById('s-total').textContent='$'+d.total.toFixed(2);
-  document.getElementById('s-count').textContent=d.subscriptions.filter(s=>s.active).length;
-  document.getElementById('s-risk').textContent=d.subscriptions.filter(s=>s.active&&s.usageScore<d.policy.cancelIfUsageBelow).length;
-  document.getElementById('s-saved').textContent='$'+st.totalSaved.toFixed(2);
-  document.getElementById('s-ar').textContent=st.totalApproved+'/'+st.totalRejected;
-  document.getElementById('wallet-addr').textContent=d.wallet;
-  document.getElementById('p-budget').value=d.policy.monthlyBudgetUSDC;
-  document.getElementById('p-cancel').value=d.policy.cancelIfUsageBelow;
-  document.getElementById('p-approval').value=d.policy.requireApprovalAbove;
-  document.getElementById('sub-list').innerHTML=d.subscriptions.map(s=>{
-    const c=s.usageScore>=60?'#22c55e':s.usageScore>=30?'#f59e0b':s.usageScore>=15?'#f97316':'#ef4444';
-    const rc=s.usageScore>=60?'rl':s.usageScore>=30?'rm':s.usageScore>=15?'rh':'rc';
-    const rl=s.usageScore>=60?'Low':s.usageScore>=30?'Medium':s.usageScore>=15?'High':'Critical';
-    return '<div class="si'+(s.active?'':' inactive')+'"><div><div class="sn">'+s.name+(s.active?'':' <span style="color:#ef4444;font-size:.62rem">(cancelled)</span>')+' <span class="rb '+rc+'">'+rl+'</span></div><div class="sm">'+s.category+' · '+s.usageScore+'%</div><div class="bw"><div class="bf" style="width:'+s.usageScore+'%;background:'+c+'"></div></div></div><div><div class="sp">$'+s.monthlyUSDC+'</div><div class="ss">/mo</div></div></div>';
-  }).join('');
+  try {
+    const d = await fetch('/api/subscriptions').then(r=>r.json());
+    const st = await fetch('/api/stats').then(r=>r.json()).catch(()=>({totalSaved:0,totalApproved:0,totalRejected:0}));
+    document.getElementById('s-total').textContent='$'+d.total.toFixed(2);
+    document.getElementById('s-count').textContent=d.subscriptions.filter(s=>s.active).length;
+    document.getElementById('s-risk').textContent=d.subscriptions.filter(s=>s.active&&s.usageScore<d.policy.cancelIfUsageBelow).length;
+    document.getElementById('s-saved').textContent='$'+(st.totalSaved||0).toFixed(2);
+    document.getElementById('s-ar').textContent=(st.totalApproved||0)+'/'+(st.totalRejected||0);
+    document.getElementById('wallet-addr').textContent=d.wallet;
+    document.getElementById('p-budget').value=d.policy.monthlyBudgetUSDC;
+    document.getElementById('p-cancel').value=d.policy.cancelIfUsageBelow;
+    document.getElementById('p-approval').value=d.policy.requireApprovalAbove;
+    document.getElementById('sub-list').innerHTML=d.subscriptions.map(s=>{
+      const c=s.usageScore>=60?'#22c55e':s.usageScore>=30?'#f59e0b':s.usageScore>=15?'#f97316':'#ef4444';
+      const rc=s.usageScore>=60?'rl':s.usageScore>=30?'rm':s.usageScore>=15?'rh':'rc';
+      const rl=s.usageScore>=60?'Low':s.usageScore>=30?'Medium':s.usageScore>=15?'High':'Critical';
+      return '<div class="si'+(s.active?'':' inactive')+'"><div><div class="sn">'+s.name+(s.active?'':' <span style="color:#ef4444;font-size:.62rem">(cancelled)</span>')+' <span class="rb '+rc+'">'+rl+'</span></div><div class="sm">'+s.category+' · '+s.usageScore+'%</div><div class="bw"><div class="bf" style="width:'+s.usageScore+'%;background:'+c+'"></div></div></div><div><div class="sp">$'+s.monthlyUSDC+'</div><div class="ss">/mo</div></div></div>';
+    }).join('');
+  } catch(e) { console.error('load error:',e); }
 }
 async function savePolicy(){
   const body={monthlyBudgetUSDC:document.getElementById('p-budget').value,cancelIfUsageBelow:document.getElementById('p-cancel').value,requireApprovalAbove:document.getElementById('p-approval').value};
@@ -218,29 +220,29 @@ async function runAgent(){
   btn.disabled=true;btn.textContent='⏳ Analyzing...';
   document.getElementById('loader').style.display='block';
   document.getElementById('results').style.display='none';
-  const r=await fetch('/api/analyze',{method:'POST'});
-  const d=await r.json();
-  document.getElementById('loader').style.display='none';
-  document.getElementById('results').style.display='block';
-  document.getElementById('insights-box').innerHTML=d.insights.map(i=>'<div class="ir '+i.type+'"><span>'+(ICONS[i.icon]||'ℹ️')+'</span><span class="it">'+i.text+'</span></div>').join('');
-  const pending=d.pending||[];
-  document.getElementById('pc').textContent=pending.length?'('+pending.length+')':'';
-  document.getElementById('approvals-box').innerHTML=pending.map(p=>{
-    const al=p.action==='cancel'?'CANCEL':p.owsWouldApprove?'PAY':'BLOCKED';
-    const ac=p.action==='cancel'?'cancel':p.owsWouldApprove?'pay':'blocked';
-    const ac2=p.owsWouldApprove?'ok':'no';
-    const amt=p.action==='cancel'?'-$'+p.amount+'/mo':'$'+p.amount+' USDC';
-    const amc=p.action==='cancel'?'#ef4444':p.owsWouldApprove?'#22c55e':'#f59e0b';
-    return '<div class="ac" id="ac-'+p.id+'"><div class="ach"><div class="acl"><span class="acn">'+p.subscription+'</span><span class="acc">'+p.category+'</span><span class="aca '+ac+'">'+al+'</span></div><div class="acr"><span class="ov '+ac2+'">OWS '+(p.owsWouldApprove?'✓ allows':'✗ blocks')+'</span><span class="acamt" style="color:'+amc+'">'+amt+'</span></div></div><div class="acb"><div class="acrec">'+p.recommendation+'</div><div class="acbtns"><button class="bapp" onclick="approve(\''+p.id+'\')">✓ Approve</button><button class="brej" onclick="reject(\''+p.id+'\')">✗ Reject</button></div></div></div>';
-  }).join('')||'<div style="color:#4b4b7a;font-size:.82rem;padding:12px">No pending actions.</div>';
-  await loadHistory();await load();
+  try {
+    const d=await fetch('/api/analyze',{method:'POST'}).then(r=>r.json());
+    document.getElementById('loader').style.display='none';
+    document.getElementById('results').style.display='block';
+    document.getElementById('insights-box').innerHTML=d.insights.map(i=>'<div class="ir '+i.type+'"><span>'+(ICONS[i.icon]||'ℹ️')+'</span><span class="it">'+i.text+'</span></div>').join('');
+    const pending=d.pending||[];
+    document.getElementById('pc').textContent=pending.length?'('+pending.length+')':'';
+    document.getElementById('approvals-box').innerHTML=pending.map(p=>{
+      const al=p.action==='cancel'?'CANCEL':p.owsWouldApprove?'PAY':'BLOCKED';
+      const ac=p.action==='cancel'?'cancel':p.owsWouldApprove?'pay':'blocked';
+      const ac2=p.owsWouldApprove?'ok':'no';
+      const amt=p.action==='cancel'?'-$'+p.amount+'/mo':'$'+p.amount+' USDC';
+      const amc=p.action==='cancel'?'#ef4444':p.owsWouldApprove?'#22c55e':'#f59e0b';
+      return '<div class="ac" id="ac-'+p.id+'"><div class="ach"><div class="acl"><span class="acn">'+p.subscription+'</span><span class="acc">'+p.category+'</span><span class="aca '+ac+'">'+al+'</span></div><div class="acr"><span class="ov '+ac2+'">OWS '+(p.owsWouldApprove?'✓ allows':'✗ blocks')+'</span><span class="acamt" style="color:'+amc+'">'+amt+'</span></div></div><div class="acb"><div class="acrec">'+p.recommendation+'</div><div class="acbtns"><button class="bapp" onclick="approve(\''+p.id+'\')">✓ Approve</button><button class="brej" onclick="reject(\''+p.id+'\')">✗ Reject</button></div></div></div>';
+    }).join('')||'<div style="color:#4b4b7a;font-size:.82rem;padding:12px">No pending actions.</div>';
+    await loadHistory();await load();
+  } catch(e) { console.error('runAgent error:',e); document.getElementById('loader').style.display='none'; }
   btn.disabled=false;btn.textContent='🤖 Run AI Agent Analysis';
 }
 async function approve(id){
   const card=document.getElementById('ac-'+id);
   card.querySelectorAll('button').forEach(b=>b.disabled=true);
-  const r=await fetch('/api/approve/'+id,{method:'POST'});
-  const d=await r.json();
+  const d=await fetch('/api/approve/'+id,{method:'POST'}).then(r=>r.json()).catch(()=>({}));
   card.classList.add('approved');
   card.querySelector('.acb').innerHTML='<div class="acdone approved">✅ Approved — OWS signed: '+(d.txHash?d.txHash.slice(0,16)+'...':'executed')+'</div>';
   await load();await loadHistory();
@@ -248,23 +250,24 @@ async function approve(id){
 async function reject(id){
   const card=document.getElementById('ac-'+id);
   card.querySelectorAll('button').forEach(b=>b.disabled=true);
-  await fetch('/api/reject/'+id,{method:'POST'});
+  await fetch('/api/reject/'+id,{method:'POST'}).catch(()=>{});
   card.classList.add('rejected');
   card.querySelector('.acb').innerHTML='<div class="acdone rejected">✗ Rejected — OWS did not sign</div>';
   await load();await loadHistory();
 }
 async function loadHistory(){
-  const r=await fetch('/api/history');
-  const h=await r.json();
-  const icons={cancelled:'🚫',paid:'✅',rejected:'⚠️'};
-  document.getElementById('history-box').innerHTML=h.length===0?'<div style="color:#4b4b7a;font-size:.82rem;padding:12px">No transactions yet.</div>':h.map(x=>{
-    const t=x.timestamp?new Date(x.timestamp).toLocaleTimeString():'';
-    const ac=x.type==='cancelled'?'#22c55e':x.type==='paid'?'#a78bfa':'#f59e0b';
-    const at=x.type==='cancelled'?'+$'+x.amount+' saved':'$'+x.amount;
-    return '<div class="hi '+x.type+'"><div class="hil"><span>'+(icons[x.type]||'•')+'</span><div><div class="hin">'+x.subscription+'</div><div class="hit">'+t+(x.blockNum?' · block #'+x.blockNum:'')+'</div></div></div><div class="hia" style="color:'+ac+'">'+at+'</div></div>';
-  }).join('');
-  const st=await(await fetch('/api/stats')).json();
-  document.getElementById('saving-wrap').innerHTML=st.totalSaved>0?'<div class="scard"><div class="sval">$'+st.totalSaved.toFixed(2)+'</div><div class="slbl">total saved by AI agent via OWS</div></div>':'';
+  try {
+    const h=await fetch('/api/history').then(r=>r.json());
+    const icons={cancelled:'🚫',paid:'✅',rejected:'⚠️'};
+    document.getElementById('history-box').innerHTML=h.length===0?'<div style="color:#4b4b7a;font-size:.82rem;padding:12px">No transactions yet.</div>':h.map(x=>{
+      const t=x.timestamp?new Date(x.timestamp).toLocaleTimeString():'';
+      const ac=x.type==='cancelled'?'#22c55e':x.type==='paid'?'#a78bfa':'#f59e0b';
+      const at=x.type==='cancelled'?'+$'+x.amount+' saved':'$'+x.amount;
+      return '<div class="hi '+x.type+'"><div class="hil"><span>'+(icons[x.type]||'•')+'</span><div><div class="hin">'+x.subscription+'</div><div class="hit">'+t+(x.blockNum?' · block #'+x.blockNum:'')+'</div></div></div><div class="hia" style="color:'+ac+'">'+at+'</div></div>';
+    }).join('');
+    const st=await fetch('/api/stats').then(r=>r.json()).catch(()=>({totalSaved:0}));
+    document.getElementById('saving-wrap').innerHTML=st.totalSaved>0?'<div class="scard"><div class="sval">$'+st.totalSaved.toFixed(2)+'</div><div class="slbl">total saved by AI agent via OWS</div></div>':'';
+  } catch(e) { console.error('history error:',e); }
 }
 function showTab(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -273,7 +276,7 @@ function showTab(name,el){
   el.classList.add('active');
 }
 async function resetAll(){
-  await fetch('/api/reset',{method:'POST'});
+  await fetch('/api/reset',{method:'POST'}).catch(()=>{});
   document.getElementById('results').style.display='none';
   await load();
 }
@@ -286,8 +289,8 @@ app.get('/', (_req, res) => res.send(PAGE));
 app.get('/api/subscriptions', (_req, res) => res.json({ subscriptions: getSubscriptions(), total: getTotalMonthly(), policy: owsPolicy, wallet: process.env.OWS_WALLET_ADDRESS || '0xfeA48a13fC4785B253D0445C6380B86B8BE89546' }));
 app.post('/api/policy', (req, res) => res.json(updatePolicy(req.body)));
 app.post('/api/analyze', (_req, res) => res.json(analyzeSubscriptions()));
-app.post('/api/approve/:id', (req, res) => res.json(approveAction(req.params.id)));
-app.post('/api/reject/:id', (req, res) => res.json(rejectAction(req.params.id)));
+app.post('/api/approve/:id', (req, res) => res.json(approveAction(req.params.id) || { error: 'not found' }));
+app.post('/api/reject/:id', (req, res) => res.json(rejectAction(req.params.id) || { error: 'not found' }));
 app.get('/api/history', (_req, res) => res.json(getHistory()));
 app.get('/api/stats', (_req, res) => res.json(getStats()));
 app.post('/api/reset', (_req, res) => { resetSubscriptions(); agentReset(); res.json({ ok: true }); });
