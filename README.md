@@ -2,6 +2,10 @@
 
 > AI agent that manages your Web3 subscriptions without ever touching your private key.
 
+## 🚀 Live Demo
+
+**[https://subguard-ai.vercel.app](https://subguard-ai.vercel.app)**
+
 ## What it does
 
 SubGuard AI analyzes your on-chain subscriptions and automatically:
@@ -48,7 +52,7 @@ Open http://localhost:3000
 
 ## Demo Flow
 
-1. Open http://localhost:3000
+1. Open https://subguard-ai.vercel.app
 2. Review subscriptions and usage scores
 3. Adjust OWS policy rules if needed
 4. Click **Run AI Agent Analysis**
