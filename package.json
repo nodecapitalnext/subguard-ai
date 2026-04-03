@@ -1,0 +1,17 @@
+{
+  "name": "subguard-ai",
+  "version": "1.0.0",
+  "description": "AI-powered Web3 subscription manager built on Open Wallet Standard",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["ows", "web3", "ai", "subscription", "open-wallet-standard"],
+  "author": "nodecapitalnext",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1"
+  }
+}
